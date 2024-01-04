@@ -1,0 +1,6 @@
+.DS_Store
+**/keras-exported-model
+**/__pycache*
+**/test-images
+frontend/node_modules
+frontend/dist
