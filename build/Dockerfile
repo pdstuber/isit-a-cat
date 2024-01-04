@@ -6,7 +6,7 @@ ENV UID=10001
 
 ARG TARGETARCH TARGETOS
 
-ENV LIBTENSORFLOW_FILENAME="libtensorflow-2.14.1-${TARGETARCH}.tar.gz"
+ENV LIBTENSORFLOW_FILENAME="libtensorflow-2.14.1-${TARGETARCH}.tar.xz"
 
 WORKDIR /app
 
@@ -28,7 +28,9 @@ RUN go mod verify
 
 RUN ldconfig /usr/local/lib
 
-ADD . .
+ADD cmd cmd
+ADD internal internal
+ADD pkg pkg
 
 RUN --mount=type=cache,target="/root/.cache/go-build" \
     GOOS=$TARGETOS GOARCH=$TARGETARCH GOCACHE=/root/.cache/go-build go build -o /go/bin/telegram-bot-test

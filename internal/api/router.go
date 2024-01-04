@@ -7,23 +7,23 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-type Server struct {
+type Router struct {
 	*fiber.App
 	listenPort string
 	errChan    chan error
 }
 
-func NewServer(config *Config) *Server {
+func NewRouter(config *Config) *Router {
 	app := fiber.New()
 
-	return &Server{
+	return &Router{
 		App:        app,
 		listenPort: config.ListenPort,
 		errChan:    make(chan error),
 	}
 }
 
-func (r *Server) Start(ctx context.Context) error {
+func (r *Router) Start(ctx context.Context) error {
 	go func() {
 		if err := r.Listen(r.listenPort); err != nil {
 			r.errChan <- err
@@ -38,6 +38,6 @@ func (r *Server) Start(ctx context.Context) error {
 	}
 }
 
-func (r *Server) Stop(timeout time.Duration) error {
+func (r *Router) Stop(timeout time.Duration) error {
 	return r.ShutdownWithTimeout(timeout)
 }
