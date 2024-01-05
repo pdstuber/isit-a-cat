@@ -28,12 +28,10 @@ RUN go mod verify
 
 RUN ldconfig /usr/local/lib
 
-ADD cmd cmd
-ADD internal internal
-ADD pkg pkg
+ADD . .
 
 RUN --mount=type=cache,target="/root/.cache/go-build" \
-    GOOS=$TARGETOS GOARCH=$TARGETARCH GOCACHE=/root/.cache/go-build go build -o /go/bin/telegram-bot-test
+    GOOS=$TARGETOS GOARCH=$TARGETARCH GOCACHE=/root/.cache/go-build go build -o /go/bin/isit-a-cat
 
 FROM --platform=${TARGETPLATFORM:-linux/amd64} debian:bookworm-slim
 
@@ -46,11 +44,11 @@ COPY --from=builder /usr/local/include/tensorflow /usr/local/include/
 
 RUN ldconfig /usr/local/lib
 
-COPY --from=builder /go/bin/telegram-bot-test /go/bin/telegram-bot-test
+COPY --from=builder /go/bin/isit-a-cat /go/bin/isit-a-cat
 
 RUN mkdir /model
 ADD build/model/* /model/
 
 USER appuser:appuser
 
-ENTRYPOINT ["/go/bin/telegram-bot-test"]
+ENTRYPOINT ["/go/bin/isit-a-cat"]

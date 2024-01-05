@@ -19,6 +19,7 @@ import (
 	"golang.org/x/image/draw"
 )
 
+// TODO Needs to be synced with tensorflow code
 const (
 	targetImageSize    = 256
 	targetImageMime    = "image/jpeg"
@@ -54,21 +55,17 @@ func New(botAPI *tgbotapi.BotAPI, imagePredictor ImagePredictor) *Bot {
 }
 
 func (b *Bot) Start(ctx context.Context) {
-	log.Println("starting bot")
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 10
 	ch := make(chan *tgbotapi.Update, b.fetchBuffer)
 	go b.FetchAsync(ctx, u, ch)
 	b.StartWorkers(ctx, ch)
-	log.Println("starting bot done")
 }
 
 func (b *Bot) Stop() {
-	log.Println("stopping bot")
 	close(b.shutdownChannel)
 	b.wg.Wait()
 	b.imagePredictor.Stop()
-	log.Println("stopping bot done")
 }
 
 func (bot *Bot) FetchAsync(ctx context.Context, config tgbotapi.UpdateConfig, ch chan *tgbotapi.Update) {
@@ -106,11 +103,11 @@ func (b *Bot) StartWorkers(ctx context.Context, ch chan *tgbotapi.Update) {
 
 		go func() {
 			for update := range ch {
-				if update.Message == nil { // ignore any non-Message updates
+				if update.Message == nil {
 					continue
 				}
 
-				if len(update.Message.Photo) == 0 { // ignore any messages not containing a photo
+				if len(update.Message.Photo) == 0 {
 					continue
 				}
 
@@ -125,7 +122,7 @@ func (b *Bot) StartWorkers(ctx context.Context, ch chan *tgbotapi.Update) {
 	}
 }
 
-// TODO proper errors
+// TODO improve error messages
 func (b *Bot) handlePhoto(ctx context.Context, message *tgbotapi.Message) tgbotapi.MessageConfig {
 	fileConfig := tgbotapi.FileConfig{
 		FileID: message.Photo[2].FileID,
@@ -175,13 +172,11 @@ func (b *Bot) handlePhoto(ctx context.Context, message *tgbotapi.Message) tgbota
 }
 
 func resizeImage(imageBytes []byte) ([]byte, error) {
-
 	src, _, err := image.Decode(bytes.NewReader(imageBytes))
 	if err != nil {
 		return nil, err
 	}
 
-	// Resize:
 	dst := image.NewRGBA(image.Rect(0, 0, targetImageSize, targetImageSize))
 	draw.NearestNeighbor.Scale(dst, dst.Rect, src, src.Bounds(), draw.Over, nil)
 
