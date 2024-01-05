@@ -1,13 +1,54 @@
-FROM golang:alpine as BUILDER
-ENV CGO_ENABLED=0 GOOS=linux GOARCH=amd64
-RUN apk update && apk add --no-cache git
-WORKDIR /usr/src/app
+# golang:1.21-alpine3.18
+FROM --platform=${TARGETPLATFORM:-linux/amd64} golang:1.21.4-bookworm as builder
+
+ENV USER=appuser
+ENV UID=10001
+
+ARG TARGETARCH TARGETOS
+
+ENV LIBTENSORFLOW_FILENAME="libtensorflow-2.14.1-${TARGETARCH}.tar.xz"
+
+WORKDIR /app
+
+RUN adduser \
+    --disabled-password \
+    --gecos "" \
+    --home "$(pwd)" \
+    --no-create-home \
+    --uid "$UID" \
+    "$USER"
+
+ADD build/${LIBTENSORFLOW_FILENAME} /usr/local/
+
 COPY go.mod .
 COPY go.sum .
-RUN go mod download
-COPY . .
-RUN go build -o isit-a-cat-bff .
 
-FROM alpine:latest
-COPY --from=BUILDER /usr/src/app/isit-a-cat-bff .
-ENTRYPOINT ["./isit-a-cat-bff"]
+RUN go mod download
+RUN go mod verify
+
+RUN ldconfig /usr/local/lib
+
+ADD . .
+
+RUN --mount=type=cache,target="/root/.cache/go-build" \
+    GOOS=$TARGETOS GOARCH=$TARGETARCH GOCACHE=/root/.cache/go-build go build -o /go/bin/isit-a-cat
+
+FROM --platform=${TARGETPLATFORM:-linux/amd64} debian:bookworm-slim
+
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=builder /etc/passwd /etc/passwd
+COPY --from=builder /etc/group /etc/group
+
+COPY --from=builder /usr/local/lib/libtensorflow* /usr/local/lib/
+COPY --from=builder /usr/local/include/tensorflow /usr/local/include/
+
+RUN ldconfig /usr/local/lib
+
+COPY --from=builder /go/bin/isit-a-cat /go/bin/isit-a-cat
+
+RUN mkdir /model
+ADD build/model/* /model/
+
+USER appuser:appuser
+
+ENTRYPOINT ["/go/bin/isit-a-cat"]
