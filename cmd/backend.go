@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/pdstuber/isit-a-cat/internal/backend"
+	"github.com/pdstuber/isit-a-cat/internal/api"
 	"github.com/spf13/cobra"
 )
 
@@ -20,18 +20,18 @@ var backendCmd = &cobra.Command{
 	Short: "Start the backend to process API requests from the frontend",
 	Run: func(cmd *cobra.Command, args []string) {
 		// TODO parse flags
-		cfg := backend.Config{
+		cfg := api.Config{
 			ListenPort: "8080",
 		}
-		apiServer := backend.NewServer(&cfg)
+		router := api.NewRouter(&cfg)
 
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 		defer stop()
 
-		apiServer.Start(ctx)
+		router.Start(ctx)
 
 		<-ctx.Done()
-		apiServer.Stop(5 * time.Second)
+		router.Stop(5 * time.Second)
 	},
 }
 

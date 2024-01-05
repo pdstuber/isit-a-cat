@@ -14,7 +14,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/gocarina/gocsv"
 	"github.com/pdstuber/isit-a-cat/internal/bot"
-	"github.com/pdstuber/isit-a-cat/internal/pkg/predict"
+	"github.com/pdstuber/isit-a-cat/pkg/predict"
 	"github.com/spf13/cobra"
 )
 
@@ -47,7 +47,7 @@ var botCmd = &cobra.Command{
 			log.Fatalf("could not unmarshal labels csv: %v\n", err)
 		}
 
-		bot := bot.New(botAPI, predict.New(model, labels, defaultColorChannels))
+		bot := bot.New(botAPI, predict.NewService(model, labels, defaultColorChannels))
 
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 		defer stop()

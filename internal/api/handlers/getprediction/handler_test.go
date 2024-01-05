@@ -1,4 +1,4 @@
-package prediction
+package getprediction
 
 import (
 	"errors"

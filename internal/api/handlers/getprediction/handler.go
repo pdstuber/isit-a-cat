@@ -1,11 +1,12 @@
-package prediction
+package getprediction
 
 import (
 	"log"
 
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
-	"github.com/pdstuber/isit-a-cat/internal/pkg/predict"
+	"github.com/pdstuber/isit-a-cat/internal/service/prediction"
+	"github.com/pdstuber/isit-a-cat/pkg/predict"
 	"github.com/pkg/errors"
 )
 
@@ -21,7 +22,7 @@ var serverErrorResponse = ErrorResponse{
 
 // GetPredictionHandlerImpl handles http requests for predicting images
 type Handler struct {
-	predictionService *Service
+	predictionService *prediction.Service
 }
 
 // Result contains the result of a prediction for an image
@@ -37,7 +38,7 @@ type ErrorResponse struct {
 }
 
 // NewHandler creates an instance of the prediction handler
-func NewHandler(predictionService *Service) *Handler {
+func NewHandler(predictionService *prediction.Service) *Handler {
 	return &Handler{predictionService: predictionService}
 }
 

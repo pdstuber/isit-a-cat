@@ -15,7 +15,7 @@ import (
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/pdstuber/isit-a-cat/internal/pkg/predict"
+	"github.com/pdstuber/isit-a-cat/pkg/predict"
 	"golang.org/x/image/draw"
 )
 

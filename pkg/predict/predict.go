@@ -34,8 +34,8 @@ type Service struct {
 	labels               []Label
 }
 
-// New creates a new service instance from the given model and labels
-func New(model []byte, labels []Label, colorChannels int64) *Service {
+// NewService creates a new service instance from the given model and labels
+func NewService(model []byte, labels []Label, colorChannels int64) *Service {
 	graph, err := createTensorFlowGraphFromModel(model)
 
 	if err != nil {
