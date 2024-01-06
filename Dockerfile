@@ -19,6 +19,9 @@ RUN adduser \
 
 ADD build/${LIBTENSORFLOW_FILENAME} /usr/local/
 
+RUN apt update && apt install binutils
+RUN strip -s /usr/local/lib/libtensorflow*
+
 COPY go.mod .
 COPY go.sum .
 

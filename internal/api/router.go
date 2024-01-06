@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"log"
 	"time"
 
@@ -15,20 +16,47 @@ import (
 	"github.com/pdstuber/isit-a-cat/internal/api/handlers/imageretrieval"
 	"github.com/pdstuber/isit-a-cat/internal/api/handlers/postimage"
 	"github.com/pdstuber/isit-a-cat/internal/dep"
+
+	"github.com/goccy/go-json"
 )
+
+type routerDependencies interface {
+	dep.CanForwardDependencies
+	dep.HasImagePredictor
+}
 
 type Router struct {
 	fiberApp   *fiber.App
 	listenPort string
 	errChan    chan error
-}
-
-type routerDependencies interface {
-	dep.CanForwardDependencies
+	deps       routerDependencies
 }
 
 func NewRouter(deps routerDependencies, listenPort string) *Router {
-	app := fiber.New()
+	postImageHandler := postimage.NewHandler(deps.Forward())
+	getPredictionHandler := getprediction.NewHandler(deps.Forward())
+	getImageHandler := imageretrieval.NewHandler(deps.Forward())
+
+	app := createFiberApp()
+
+	// TODO move bot to webhook and include here
+	app.Post("/images", postImageHandler.Handle)
+	app.Get("/predictions/:id", getPredictionHandler.Handle)
+	app.Get("/images/:id", getImageHandler.Handle)
+
+	return &Router{
+		fiberApp:   app,
+		listenPort: listenPort,
+		errChan:    make(chan error),
+		deps:       deps,
+	}
+}
+
+func createFiberApp() *fiber.App {
+	app := fiber.New(fiber.Config{
+		JSONEncoder: json.Marshal,
+		JSONDecoder: json.Unmarshal,
+	})
 	app.Use(logger.New())
 	app.Use(healthcheck.New())
 	app.Use(cors.New())
@@ -42,20 +70,7 @@ func NewRouter(deps routerDependencies, listenPort string) *Router {
 		return fiber.ErrUpgradeRequired
 	})
 
-	postImageHandler := postimage.NewHandler(deps.Forward())
-	getPredictionHandler := getprediction.NewHandler(deps.Forward())
-	getImageHandler := imageretrieval.NewHandler(deps.Forward())
-
-	// TODO move bot to webhook and include here
-	app.Post("/images", postImageHandler.Handle)
-	app.Get("/predictions/:id", getPredictionHandler.Handle)
-	app.Get("/images/:id", getImageHandler.Handle)
-
-	return &Router{
-		fiberApp:   app,
-		listenPort: listenPort,
-		errChan:    make(chan error),
-	}
+	return app
 }
 
 func (r *Router) Start(ctx context.Context) error {
@@ -75,5 +90,5 @@ func (r *Router) Start(ctx context.Context) error {
 }
 
 func (r *Router) Stop(timeout time.Duration) error {
-	return r.fiberApp.ShutdownWithTimeout(timeout)
+	return errors.Join(r.deps.ImagePredictor().Stop(), r.fiberApp.ShutdownWithTimeout(timeout))
 }
