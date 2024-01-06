@@ -3,7 +3,7 @@
 package mocks
 
 import (
-	predict "github.com/pdstuber/isit-a-cat/pkg/predict"
+	predict "github.com/pdstuber/isit-a-cat/pkg/prediction"
 	mock "github.com/stretchr/testify/mock"
 )
 

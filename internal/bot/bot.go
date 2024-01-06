@@ -15,7 +15,7 @@ import (
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/pdstuber/isit-a-cat/pkg/predict"
+	"github.com/pdstuber/isit-a-cat/pkg/prediction"
 	"golang.org/x/image/draw"
 )
 
@@ -28,7 +28,7 @@ const (
 
 // A ImagePredictor predicts the class of an image
 type ImagePredictor interface {
-	PredictImage(imageBytes []byte) (*predict.Result, error)
+	PredictImage(imageBytes []byte) (*prediction.Result, error)
 	Stop() error
 }
 

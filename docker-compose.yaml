@@ -1,14 +1,22 @@
 version: '3'
 services:
-    isit-a-cat:
+  isit-a-cat:
     build: .
     ports:
       - "8095:8080"
     depends_on:
       - minio
+    links:
+      - minio
+    env_file:
+      - .env
     command: run backend
   minio:
     image: minio/minio:RELEASE.2024-01-01T16-36-33Z
+    volumes:
+      - ./bucket_data:/data
     ports:
       - "9000:9000"
+    env_file:
+      - .env
     command: server /data

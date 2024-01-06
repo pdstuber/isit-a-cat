@@ -1,9 +1,14 @@
-package predict
+package prediction
 
 import (
+	"bytes"
+	"image"
+	"image/jpeg"
+
 	"github.com/pkg/errors"
 	tf "github.com/wamuir/graft/tensorflow"
 	"github.com/wamuir/graft/tensorflow/op"
+	"golang.org/x/image/draw"
 )
 
 const (
@@ -14,6 +19,13 @@ const (
 	vgg16ImagenetMeanRed                       = float32(123.68)
 	vgg16ImagenetMeanGreen                     = float32(116.779)
 	vgg16ImagenetMeanBlue                      = float32(103.939)
+)
+
+// TODO Needs to be synced with tensorflow code
+const (
+	targetImageSize    = 256
+	targetImageMime    = "image/jpeg"
+	targetImageQuality = 99
 )
 
 // VGG16 mean RGB values for the imagenet dataset
@@ -50,4 +62,19 @@ func decodeJPEGGraph(colorChannels int64) (*tf.Graph, *tf.Output, *tf.Output, er
 
 	graph, err := s.Finalize()
 	return graph, &input, &output, err
+}
+
+// TODO user tensorflow for resizing
+func resizeImage(imageBytes []byte) ([]byte, error) {
+	src, _, err := image.Decode(bytes.NewReader(imageBytes))
+	if err != nil {
+		return nil, err
+	}
+	dst := image.NewRGBA(image.Rect(0, 0, targetImageSize, targetImageSize))
+	draw.NearestNeighbor.Scale(dst, dst.Rect, src, src.Bounds(), draw.Over, nil)
+
+	var buf bytes.Buffer
+	jpeg.Encode(&buf, dst, &jpeg.Options{Quality: targetImageQuality})
+
+	return buf.Bytes(), nil
 }

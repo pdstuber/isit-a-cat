@@ -1,4 +1,4 @@
-package predict
+package prediction
 
 import "math"
 

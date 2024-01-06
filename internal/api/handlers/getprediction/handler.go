@@ -5,8 +5,9 @@ import (
 
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
+	"github.com/pdstuber/isit-a-cat/internal/dep"
 	"github.com/pdstuber/isit-a-cat/internal/service/prediction"
-	"github.com/pdstuber/isit-a-cat/pkg/predict"
+	pkgPrediction "github.com/pdstuber/isit-a-cat/pkg/prediction"
 	"github.com/pkg/errors"
 )
 
@@ -20,14 +21,18 @@ var serverErrorResponse = ErrorResponse{
 	ErrorType: errorTypeServerError,
 }
 
+type handerDependencies interface {
+	dep.CanForwardDependencies
+}
+
 // GetPredictionHandlerImpl handles http requests for predicting images
 type Handler struct {
-	predictionService *prediction.Service
+	deps handerDependencies
 }
 
 // Result contains the result of a prediction for an image
 type Result struct {
-	*predict.Result
+	*pkgPrediction.Result
 	error
 }
 
@@ -38,8 +43,8 @@ type ErrorResponse struct {
 }
 
 // NewHandler creates an instance of the prediction handler
-func NewHandler(predictionService *prediction.Service) *Handler {
-	return &Handler{predictionService: predictionService}
+func NewHandler(deps handerDependencies) *Handler {
+	return &Handler{deps}
 }
 
 // ServeHTTP requests on the image prediction endpoint
@@ -65,6 +70,7 @@ func (h *Handler) Handle(ctx *fiber.Ctx) error {
 	return websocketHandler(ctx)
 }
 
+// TODO better websocket errors
 func (h *Handler) triggerPrediction(id string, ws *websocket.Conn) {
 	defer func() {
 		err := ws.Close()
@@ -99,7 +105,7 @@ func (h *Handler) triggerPrediction(id string, ws *websocket.Conn) {
 }
 
 func (h Handler) getPredictionFromService(id string, predictionResultChannel chan Result) {
-	imagePrediction, err := h.predictionService.CalculatePredictionForStorageObject(id)
+	imagePrediction, err := prediction.CalculatePrediction(h.deps.Forward(), id)
 
 	if err != nil {
 		predictionResultChannel <- Result{nil, errors.Wrap(err, "Error getting prediction from prediction service")}

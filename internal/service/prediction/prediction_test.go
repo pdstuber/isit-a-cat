@@ -7,7 +7,7 @@ import (
 
 	"github.com/pdstuber/isit-a-cat/internal/service/prediction"
 	"github.com/pdstuber/isit-a-cat/internal/service/prediction/mocks"
-	"github.com/pdstuber/isit-a-cat/pkg/predict"
+	prediction1 "github.com/pdstuber/isit-a-cat/pkg/prediction"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -21,13 +21,13 @@ const (
 )
 
 var (
-	testPredictionInput  = predict.Input{ID: testImageID}
+	testPredictionInput  = prediction1.Input{ID: testImageID}
 	invalidTestMessage   = []byte{9, 8, 7, 6, 5}
-	mockPredictionResult = predict.Result{
+	mockPredictionResult = prediction1.Result{
 		Class:       "banana",
 		Probability: 0.99,
 	}
-	expectedErrorResult  = predict.ErrorResult{Message: "could not make prediction on image"}
+	expectedErrorResult  = prediction1.ErrorResult{Message: "could not make prediction on image"}
 	mockImage            = []byte{1, 2, 3, 4, 5, 6, 7}
 	metricsPublisherMock *mocks.MetricsPublisher
 	mockError            = errors.New(mockErrorText)

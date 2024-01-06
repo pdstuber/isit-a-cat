@@ -1,18 +1,19 @@
-package imageupload
+package postimage_test
 
 import (
 	"encoding/json"
 	"errors"
-	"github.com/gorilla/mux"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-	"gitlab.com/pdstuber/isit-a-cat-bff/imageretrieval"
-	"gitlab.com/pdstuber/isit-a-cat-bff/imageupload/mocks"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/gorilla/mux"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"gitlab.com/pdstuber/isit-a-cat-bff/imageretrieval"
+	"gitlab.com/pdstuber/isit-a-cat-bff/imageupload/mocks"
 )
 
 const (

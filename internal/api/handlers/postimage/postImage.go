@@ -1,11 +1,11 @@
-package imageupload
+package postimage
 
 import (
 	"io"
 	"log"
 
 	"github.com/gofiber/fiber/v2"
-	"gitlab.com/pdstuber/isit-a-cat-bff/imageretrieval"
+	"github.com/pdstuber/isit-a-cat/internal/dep"
 )
 
 const (
@@ -17,29 +17,30 @@ const (
 	errorTextInvalidFormFile   = "invalid form key. Please provide an image file under they key 'file'"
 )
 
-// A StorageWriter writes data to the storage object with the given ID
-type StorageWriter interface {
-	WriteToBucketObject(objectID string, data []byte) error
+// ImgParams are parameters that identify an image
+type ImgParams struct {
+	ID           string `json:"id"`
+	OriginalName string `json:"originalName"`
 }
 
-// A IDGenerator generates unique ids as string
-type IDGenerator interface {
-	GenerateID() string
+type handerDependencies interface {
+	dep.HasStorageWriter
+	dep.HasIDGenerator
 }
 
 // Handler handles http requests for uploading images
 type Handler struct {
-	storageWriter StorageWriter
-	idGenerator   IDGenerator
+	deps handerDependencies
 }
 
 // NewHandler creates a new http handler for uploading images
-func NewHandler(storageWriter StorageWriter, idGenerator IDGenerator) *Handler {
-	return &Handler{storageWriter, idGenerator}
+func NewHandler(deps handerDependencies) *Handler {
+	return &Handler{deps}
 }
 
 // ServeHTTP requests on the image upload endpoint
 func (h *Handler) Handle(c *fiber.Ctx) error {
+	log.Println("inside post image handler")
 	form, err := c.MultipartForm()
 	if err != nil {
 		log.Printf("invalid http form: %v\n", err)
@@ -60,23 +61,20 @@ func (h *Handler) Handle(c *fiber.Ctx) error {
 	}
 
 	defer file.Close()
-
-	id := h.idGenerator.GenerateID()
+	id := h.deps.IDGenerator().GenerateID()
 
 	data, err := io.ReadAll(file)
-
 	if err != nil {
 		log.Printf("Could not read image from HTTP form: %v\n", err)
 		return fiber.ErrInternalServerError
 	}
 
-	err = h.storageWriter.WriteToBucketObject(id, data)
-
+	err = h.deps.StorageWriter().WriteToBucketObject(id, data)
 	if err != nil {
 		log.Printf("Could not upload image to object storage: %v\n", err)
 		return fiber.ErrInternalServerError
 	}
-	imgParams := imageretrieval.ImgParams{
+	imgParams := ImgParams{
 		ID:           id,
 		OriginalName: staticPictureName,
 	}

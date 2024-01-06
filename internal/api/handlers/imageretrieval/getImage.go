@@ -2,9 +2,9 @@ package imageretrieval
 
 import (
 	"log"
-	"net/http"
 
-	"github.com/gorilla/mux"
+	"github.com/gofiber/fiber/v2"
+	"github.com/pdstuber/isit-a-cat/internal/dep"
 )
 
 const (
@@ -13,9 +13,8 @@ const (
 	errorTextMissingID         = "request is missing mandatory path parameter 'id'"
 )
 
-// A StorageReader reads data from the storage object with the given ID
-type StorageReader interface {
-	ReadFromBucketObject(objectID string) ([]byte, error)
+type handlerDependencies interface {
+	dep.HasStorageReader
 }
 
 // ImgParams are parameters that identify an image
@@ -25,38 +24,32 @@ type ImgParams struct {
 }
 
 // GetImageHandlerImpl handles http requests for retrieving images
-type GetImageHandlerImpl struct {
-	storageReader StorageReader
+type Handler struct {
+	deps handlerDependencies
 }
 
 // NewHandler creates an instance of the get image handler
-func NewHandler(storageReader StorageReader) http.Handler {
-	return &GetImageHandlerImpl{storageReader}
+func NewHandler(deps handlerDependencies) *Handler {
+	return &Handler{deps}
 }
 
 // ServeHTTP requests for getting images
-func (h GetImageHandlerImpl) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Handle(c *fiber.Ctx) error {
 
-	id := mux.Vars(r)["id"]
+	id := c.Params("id")
 
 	if id == "" {
 		log.Println(errorTextMissingID)
-		http.Error(w, errorTextMissingID, http.StatusBadRequest)
-		return
+		return fiber.NewError(fiber.StatusBadRequest, errorTextMissingID)
 	}
 
-	image, err := h.storageReader.ReadFromBucketObject(id)
+	image, err := h.deps.StorageReader().ReadFromBucketObject(id)
 
 	if err != nil {
 		log.Printf("Error retrieving image from object storage: %v\n", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
+		return fiber.ErrInternalServerError
 	}
-	w.Header().Set(headerNameContentType, headerValueContentTypeJpeg)
-	w.WriteHeader(http.StatusOK)
-	_, err = w.Write(image)
 
-	if err != nil {
-		log.Printf("could not write response: %v\n", err)
-	}
+	c.Set(headerNameContentType, headerValueContentTypeJpeg)
+	return c.Send(image)
 }

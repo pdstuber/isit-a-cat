@@ -1,4 +1,4 @@
-package predict
+package prediction
 
 import (
 	"log"
@@ -8,20 +8,10 @@ import (
 )
 
 const (
-	// TODO move to environment vars
-	inputOperationName  = "input_1"
-	outputOperationName = "dense_3/Softmax"
-
 	errorTextTensorflowEmptyResponse          = "tensorflow session produced empty result"
 	errorTextCouldNotExecuteTensorflowSession = "could not execute tensorflow session"
 	errorTextCouldNotProcessInputImage        = "could not process input image"
 )
-
-// The Label for a tensorflow prediction
-type Label struct {
-	Index     int    `csv:"index"`
-	ClassName string `csv:"class_name"`
-}
 
 // Service predicts images using an imported tensorflow model
 type Service struct {
@@ -35,7 +25,7 @@ type Service struct {
 }
 
 // NewService creates a new service instance from the given model and labels
-func NewService(model []byte, labels []Label, colorChannels int64) *Service {
+func NewService(model []byte, labels []Label, colorChannels int64, inputOperationName, outputOperationName string) *Service {
 	graph, err := createTensorFlowGraphFromModel(model)
 
 	if err != nil {
@@ -55,6 +45,7 @@ func NewService(model []byte, labels []Label, colorChannels int64) *Service {
 	if err != nil {
 		log.Fatalf("could not create tensorflow graph: %v/n", err)
 	}
+
 	// Execute that graph to decode this one image
 	normalizationSession, err := tf.NewSession(normalizationGraph, nil)
 	if err != nil {
@@ -66,8 +57,12 @@ func NewService(model []byte, labels []Label, colorChannels int64) *Service {
 
 // PredictImage with the imported tensorflow model and labels
 func (s *Service) PredictImage(imageBytes []byte) (*Result, error) {
-	inputTensor, err := s.makeTensorFromImage(imageBytes)
+	resizedImageBytes, err := resizeImage(imageBytes)
+	if err != nil {
+		return nil, errors.Wrap(err, errorTextCouldNotProcessInputImage)
+	}
 
+	inputTensor, err := s.makeTensorFromImage(resizedImageBytes)
 	if err != nil {
 		return nil, errors.Wrap(err, errorTextCouldNotProcessInputImage)
 	}

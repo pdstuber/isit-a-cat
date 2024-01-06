@@ -1,4 +1,3 @@
-# golang:1.21-alpine3.18
 FROM --platform=${TARGETPLATFORM:-linux/amd64} golang:1.21.4-bookworm as builder
 
 ENV USER=appuser
@@ -27,8 +26,10 @@ RUN go mod download
 RUN go mod verify
 
 RUN ldconfig /usr/local/lib
-
-ADD . .
+COPY cmd cmd
+COPY internal internal
+COPY pkg pkg
+COPY main.go main.go
 
 RUN --mount=type=cache,target="/root/.cache/go-build" \
     GOOS=$TARGETOS GOARCH=$TARGETARCH GOCACHE=/root/.cache/go-build go build -o /go/bin/isit-a-cat
