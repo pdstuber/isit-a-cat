@@ -19,11 +19,7 @@ const (
 	vgg16ImagenetMeanRed                       = float32(123.68)
 	vgg16ImagenetMeanGreen                     = float32(116.779)
 	vgg16ImagenetMeanBlue                      = float32(103.939)
-)
 
-// TODO Needs to be synced with tensorflow code
-const (
-	targetImageSize    = 256
 	targetImageMime    = "image/jpeg"
 	targetImageQuality = 99
 )
@@ -65,12 +61,12 @@ func decodeJPEGGraph(colorChannels int64) (*tf.Graph, *tf.Output, *tf.Output, er
 }
 
 // TODO user tensorflow for resizing
-func resizeImage(imageBytes []byte) ([]byte, error) {
+func (s *Service) resizeImage(imageBytes []byte) ([]byte, error) {
 	src, _, err := image.Decode(bytes.NewReader(imageBytes))
 	if err != nil {
 		return nil, err
 	}
-	dst := image.NewRGBA(image.Rect(0, 0, targetImageSize, targetImageSize))
+	dst := image.NewRGBA(image.Rect(0, 0, s.targetImageDimensions, s.targetImageDimensions))
 	draw.NearestNeighbor.Scale(dst, dst.Rect, src, src.Bounds(), draw.Over, nil)
 
 	var buf bytes.Buffer

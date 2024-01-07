@@ -15,17 +15,18 @@ const (
 
 // Service predicts images using an imported tensorflow model
 type Service struct {
-	inputOperation       *tf.Operation
-	outputOperation      *tf.Operation
-	session              *tf.Session
-	normalizationSession *tf.Session
-	normalizationInput   *tf.Output
-	normalizationOutput  *tf.Output
-	labels               []Label
+	inputOperation        *tf.Operation
+	outputOperation       *tf.Operation
+	session               *tf.Session
+	normalizationSession  *tf.Session
+	normalizationInput    *tf.Output
+	normalizationOutput   *tf.Output
+	labels                []Label
+	targetImageDimensions int
 }
 
 // NewService creates a new service instance from the given model and labels
-func NewService(model []byte, labels []Label, colorChannels int64, inputOperationName, outputOperationName string) *Service {
+func NewService(model []byte, labels []Label, colorChannels int64, inputOperationName, outputOperationName string, targetImageDimensions int) *Service {
 	graph, err := createTensorFlowGraphFromModel(model)
 
 	if err != nil {
@@ -52,12 +53,12 @@ func NewService(model []byte, labels []Label, colorChannels int64, inputOperatio
 		log.Fatalf("could not create tensorflow session: %v/n", err)
 	}
 
-	return &Service{inputOperation, outputOperation, session, normalizationSession, normalizationInput, normalizationOutput, labels}
+	return &Service{inputOperation, outputOperation, session, normalizationSession, normalizationInput, normalizationOutput, labels, targetImageDimensions}
 }
 
 // PredictImage with the imported tensorflow model and labels
 func (s *Service) PredictImage(imageBytes []byte) (*Result, error) {
-	resizedImageBytes, err := resizeImage(imageBytes)
+	resizedImageBytes, err := s.resizeImage(imageBytes)
 	if err != nil {
 		return nil, errors.Wrap(err, errorTextCouldNotProcessInputImage)
 	}

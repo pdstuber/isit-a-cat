@@ -48,7 +48,7 @@ var botCmd = &cobra.Command{
 		inputOperationName := "input_1"
 		outputOperationName := "dense_3/Softmax"
 
-		bot := bot.New(botAPI, prediction.NewService(model, labels, defaultColorChannels, inputOperationName, outputOperationName))
+		bot := bot.New(botAPI, prediction.NewService(model, labels, defaultColorChannels, inputOperationName, outputOperationName, 256))
 
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 		defer stop()

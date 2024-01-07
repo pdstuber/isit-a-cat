@@ -50,10 +50,12 @@ var backendCmd = &cobra.Command{
 		}
 
 		// TODO move to environment vars
+		targetImageDimensions := 256
 		inputOperationName := "input_1"
 		outputOperationName := "dense_3/Softmax"
 
-		imagePredictor := prediction.NewService(model, labels, defaultColorChannels, inputOperationName, outputOperationName)
+		imagePredictor := prediction.NewService(model, labels, defaultColorChannels, inputOperationName, outputOperationName, targetImageDimensions)
+
 		objectStorageEndpoint := getEnv("OBJECT_STORAGE_ENDPOINT", "minio:9000")
 		objectStorageAccessKeyID := getEnv("MINIO_ACCESS_KEY", "")
 		objectStorageSecretAccessKey := getEnv("MINIO_SECRET_KEY", "")

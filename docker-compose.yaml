@@ -11,6 +11,12 @@ services:
     env_file:
       - .env
     command: run backend
+  isit-a-cat-frontend:
+    build: frontend
+    ports:
+      - "8090:8043" 
+    links:
+      - isit-a-cat
   minio:
     image: minio/minio
     volumes:
