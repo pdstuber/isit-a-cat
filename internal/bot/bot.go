@@ -1,11 +1,8 @@
 package bot
 
 import (
-	"bytes"
 	"context"
-	"image"
 	_ "image/gif"
-	"image/jpeg"
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
@@ -16,15 +13,9 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/pdstuber/isit-a-cat/pkg/prediction"
-	"golang.org/x/image/draw"
 )
 
-// TODO Needs to be synced with tensorflow code
-const (
-	targetImageSize    = 256
-	targetImageMime    = "image/jpeg"
-	targetImageQuality = 99
-)
+const telegramBotErrorMessage = "there was a problem in processing your request at this time"
 
 // A ImagePredictor predicts the class of an image
 type ImagePredictor interface {
@@ -130,58 +121,37 @@ func (b *Bot) handlePhoto(ctx context.Context, message *tgbotapi.Message) tgbota
 
 	file, err := b.botAPI.GetFile(fileConfig)
 	if err != nil {
-		log.Println(err)
-		return tgbotapi.NewMessage(message.Chat.ID, "There was an error, I'm sorry :(")
+		log.Printf("could not retrieve information about your uploaded photo from the server: %w\n", err)
+		return tgbotapi.NewMessage(message.Chat.ID, telegramBotErrorMessage)
 	}
 
 	link := file.Link(b.botAPI.Token)
 
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, link, nil)
 	if err != nil {
-		log.Println(err)
-		return tgbotapi.NewMessage(message.Chat.ID, "There was an error, I'm sorry :(")
+		log.Printf("could not create http request: %w\n", err)
+		return tgbotapi.NewMessage(message.Chat.ID, telegramBotErrorMessage)
 	}
 
 	response, err := b.httpClient.Do(request)
 	if err != nil {
-		log.Println(err)
-		return tgbotapi.NewMessage(message.Chat.ID, "There was an error, I'm sorry :(")
+		log.Printf("could not perform http request: %w\n", err)
+		return tgbotapi.NewMessage(message.Chat.ID, telegramBotErrorMessage)
 	}
 
 	defer response.Body.Close()
 
 	photoBytes, err := io.ReadAll(response.Body)
 	if err != nil {
-		log.Println(err)
-		return tgbotapi.NewMessage(message.Chat.ID, "There was an error, I'm sorry :(")
+		log.Printf("could read http response body: %w\n", err)
+		return tgbotapi.NewMessage(message.Chat.ID, telegramBotErrorMessage)
 	}
 
-	resizedBytes, err := resizeImage(photoBytes)
+	result, err := b.imagePredictor.PredictImage(photoBytes)
 	if err != nil {
-		log.Println(err)
-		return tgbotapi.NewMessage(message.Chat.ID, "There was an error, I'm sorry :(")
-	}
-	result, err := b.imagePredictor.PredictImage(resizedBytes)
-
-	if err != nil {
-		log.Println(err)
-		return tgbotapi.NewMessage(message.Chat.ID, "There was an error, I'm sorry :(")
+		log.Printf("could not retrieve information about your uploaded photo from the server: %w\n", err)
+		return tgbotapi.NewMessage(message.Chat.ID, telegramBotErrorMessage)
 	}
 
 	return tgbotapi.NewMessage(message.Chat.ID, result.String())
-}
-
-func resizeImage(imageBytes []byte) ([]byte, error) {
-	src, _, err := image.Decode(bytes.NewReader(imageBytes))
-	if err != nil {
-		return nil, err
-	}
-
-	dst := image.NewRGBA(image.Rect(0, 0, targetImageSize, targetImageSize))
-	draw.NearestNeighbor.Scale(dst, dst.Rect, src, src.Bounds(), draw.Over, nil)
-
-	var buf bytes.Buffer
-	jpeg.Encode(&buf, dst, &jpeg.Options{Quality: targetImageQuality})
-
-	return buf.Bytes(), nil
 }

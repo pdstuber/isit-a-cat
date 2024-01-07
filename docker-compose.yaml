@@ -1,6 +1,6 @@
 version: '3'
 services:
-  isit-a-cat:
+  isit-a-cat-backend:
     build: .
     ports:
       - "8095:8080"
@@ -11,12 +11,21 @@ services:
     env_file:
       - .env
     command: run backend
+  isit-a-cat-bot:
+    build: .
+    depends_on:
+      - minio
+    links:
+      - minio
+    command: run bot
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
   isit-a-cat-frontend:
     build: frontend
     ports:
       - "8090:8043" 
     links:
-      - isit-a-cat
+      - isit-a-cat-backend
   minio:
     image: minio/minio
     volumes:

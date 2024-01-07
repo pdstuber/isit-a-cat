@@ -2,15 +2,12 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 	"time"
 
-	"github.com/gocarina/gocsv"
 	"github.com/pdstuber/isit-a-cat/internal/api"
 	"github.com/pdstuber/isit-a-cat/internal/dep"
 	"github.com/pdstuber/isit-a-cat/internal/service/idgenerator"
@@ -19,52 +16,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func getEnv(key, fallback string) string {
-	if value, ok := os.LookupEnv(key); ok {
-		return value
-	}
-	return fallback
-}
-
 // backendCmd represents the backend command
 var backendCmd = &cobra.Command{
 	Use:   "backend",
 	Short: "Start the backend to process API requests from the frontend",
 	Run: func(cmd *cobra.Command, args []string) {
-		// TODO parse flags
-
-		var labels []prediction.Label
-
-		modelPath := getEnv("MODEL_PATH", "/model")
-		model, err := os.ReadFile(fmt.Sprintf("%s/model.pb", modelPath))
+		config, err := api.ConfigFromEnv()
 		if err != nil {
-			log.Panic(err)
-		}
-		labelBytes, err := os.ReadFile(fmt.Sprintf("%s/labels.csv", modelPath))
-		if err != nil {
-			log.Panic(err)
+			log.Fatalf("could not create config from environment: %v\n", err)
 		}
 
-		if err := gocsv.UnmarshalBytes(labelBytes, &labels); err != nil {
-			log.Fatalf("could not unmarshal labels csv: %v\n", err)
-		}
+		imagePredictor := prediction.NewService(config.Model, config.Labels, defaultColorChannels, config.TFInputOperationName, config.TFOutputOperationName, config.TargetImageDimensions)
 
-		// TODO move to environment vars
-		targetImageDimensions := 256
-		inputOperationName := "input_1"
-		outputOperationName := "dense_3/Softmax"
-
-		imagePredictor := prediction.NewService(model, labels, defaultColorChannels, inputOperationName, outputOperationName, targetImageDimensions)
-
-		objectStorageEndpoint := getEnv("OBJECT_STORAGE_ENDPOINT", "minio:9000")
-		objectStorageAccessKeyID := getEnv("MINIO_ACCESS_KEY", "")
-		objectStorageSecretAccessKey := getEnv("MINIO_SECRET_KEY", "")
-		objectStorageUseTLS, _ := strconv.ParseBool(getEnv("OBJECT_STORAGE_USE_TLS", "false"))
-
-		storageBucketName := getEnv("STORAGE_BUCKET_NAME", "isit-a-cat")
-		storageObjectFolder := getEnv("STORAGE_OBJECT_FOLDER", "uploaded-images/")
-
-		storageService, err := storage.New(storageBucketName, storageObjectFolder, objectStorageEndpoint, objectStorageAccessKeyID, objectStorageSecretAccessKey, objectStorageUseTLS)
+		storageService, err := storage.New(config.ObjectStorageBucketName, config.ObjectStorageObjectFolder, config.ObjectStorageEndpoint, config.ObjectStorageAccessKeyID, config.ObjectStorageSecretAccessKey, config.ObjectStorageUseTLS)
 		if err != nil {
 			log.Fatalf("could not create storage service: %v\n", err)
 		}

@@ -2,14 +2,12 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/gocarina/gocsv"
 	"github.com/pdstuber/isit-a-cat/internal/bot"
 	"github.com/pdstuber/isit-a-cat/pkg/prediction"
 	"github.com/spf13/cobra"
@@ -20,35 +18,21 @@ var botCmd = &cobra.Command{
 	Use:   "bot",
 	Short: "Start the telegram bot.",
 	Run: func(cmd *cobra.Command, args []string) {
-		botAPI, err := tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_BOT_TOKEN"))
+		config, err := bot.ConfigFromEnv()
+		if err != nil {
+			log.Fatalf("could not create config from environment: %v\n", err)
+		}
+
+		botAPI, err := tgbotapi.NewBotAPI(config.TelegramBotToken)
 		if err != nil {
 			log.Panic(err)
 		}
 
 		botAPI.Debug = true
 
-		log.Printf("Authorized on account %s", botAPI.Self.UserName)
-		var labels []prediction.Label
+		imagePredictor := prediction.NewService(config.Model, config.Labels, defaultColorChannels, config.TFInputOperationName, config.TFOutputOperationName, config.TargetImageDimensions)
 
-		modelPath := os.Getenv("MODEL_PATH")
-		model, err := os.ReadFile(fmt.Sprintf("%s/model.pb", modelPath))
-		if err != nil {
-			log.Panic(err)
-		}
-		labelBytes, err := os.ReadFile(fmt.Sprintf("%s/labels.csv", modelPath))
-		if err != nil {
-			log.Panic(err)
-		}
-
-		if err := gocsv.UnmarshalBytes(labelBytes, &labels); err != nil {
-			log.Fatalf("could not unmarshal labels csv: %v\n", err)
-		}
-
-		// TODO move to environment vars
-		inputOperationName := "input_1"
-		outputOperationName := "dense_3/Softmax"
-
-		bot := bot.New(botAPI, prediction.NewService(model, labels, defaultColorChannels, inputOperationName, outputOperationName, 256))
+		bot := bot.New(botAPI, imagePredictor)
 
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 		defer stop()
