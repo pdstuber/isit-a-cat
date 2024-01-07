@@ -5,4 +5,5 @@
 frontend/node_modules
 frontend/dist
 bucket_data/*
+!bucket_data/.gitkeep 
 .env
