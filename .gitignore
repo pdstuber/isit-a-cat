@@ -7,3 +7,4 @@ frontend/dist
 bucket_data/*
 !bucket_data/.gitkeep 
 .env
+learn/training-images
